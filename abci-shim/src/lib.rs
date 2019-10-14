@@ -10,13 +10,21 @@
 //!
 // -----------------------------------------------------------------------------
 
-struct Context {}
+struct Context {
+    callback: Callback,
+}
+
+fn empty_callback(n: usize) -> usize {
+    n
+}
 
 /// Define a Global Context in the library. This is quite an anti-pattern but we are specifically
 /// designing the library to be linked against an ABCI implementation. As such this saves us
 /// managing the lifetimes of the context and eliminates allocation/de-allocation pains for the
 /// consumer.
-static mut CONTEXT: Context = Context {};
+static mut CONTEXT: Context = Context {
+    callback: empty_callback,
+};
 
 // -----------------------------------------------------------------------------
 // Define ABCI Application
@@ -33,8 +41,13 @@ unsafe extern "C" fn get_abci_context() -> *mut Context {
     return &mut CONTEXT as *mut Context;
 }
 
+type Callback = fn(usize) -> usize;
+
 #[no_mangle]
-extern "C" fn register_callback(_ctx: &mut Context) {
-    let address = "127.0.0.1:26658".parse().unwrap();
-    abci::run(address, Tensor);
+extern "C" fn register_abci_callback(_ctx: &mut Context, callback: Callback) {
+    // _ctx.callback = callback;
+    // let address = "127.0.0.1:26658".parse().unwrap();
+    // abci::run(address, Tensor);
+    let foo = callback(13);
+    println!("Rust Code: {}", foo);
 }

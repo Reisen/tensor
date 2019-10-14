@@ -25,7 +25,7 @@ module Main where
 import           Protolude          hiding ( hash )
 import           Data.Typeable             ( typeOf )
 import           Foreign.C                 ()
-import           Foreign.Ptr               ( Ptr, nullPtr )
+import           Foreign.Ptr               ( FunPtr, Ptr, nullPtr )
 
 import           Data.ByteArray            ( convert )
 import           Data.Base58String.Bitcoin ( toText, fromBytes )
@@ -51,11 +51,30 @@ newtype Context = Context
   { abciContext :: Ptr ABCIContext
   }
 
-foreign import ccall "get_abci_context" get_context :: IO (Ptr ABCIContext)
+-- We need to define some magical wrappers so that we can convert Haskell
+-- callbacks into C function prototypes.
+foreign import ccall "wrapper" createCallback
+  :: (Int -> Int)
+  -> IO (FunPtr (Int -> Int))
 
--- Call into ABCI
+-- Define Foreign Function Signatures
+foreign import ccall "get_abci_context" get_context :: IO (Ptr ABCIContext)
+foreign import ccall "register_abci_callback" register_callback
+  :: Ptr ABCIContext
+  -> FunPtr (Int -> Int)
+  -> IO ()
+
+-- Implement External C Functions
+-- First we need to implement our magical function converters, and finally
+-- implement the various actual C library functions we want to link to.
+
 getContext :: IO Context
 getContext = map Context get_context
+
+registerCallback :: (Int -> Int) -> Context -> IO ()
+registerCallback callback (Context abci) = do
+  c_callback <- createCallback callback
+  register_callback abci c_callback
 
 
 
@@ -156,6 +175,8 @@ main = do
   let updateChain4 = update (Just "Hello") updateChain3
   let updateChain5 = update (Just "Hello") updateChain4
   let latestChain  = update Nothing updateChain5
+  ctx <- getContext
+  registerCallback (\n -> n * 4) ctx
   renderChain initialChain
   renderChain updateChain5
   renderChain latestChain
