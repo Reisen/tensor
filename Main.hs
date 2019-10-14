@@ -54,14 +54,14 @@ newtype Context = Context
 -- We need to define some magical wrappers so that we can convert Haskell
 -- callbacks into C function prototypes.
 foreign import ccall "wrapper" createCallback
-  :: (Int -> Int)
-  -> IO (FunPtr (Int -> Int))
+  :: IO ()
+  -> IO (FunPtr (IO ()))
 
 -- Define Foreign Function Signatures
 foreign import ccall "get_abci_context" get_context :: IO (Ptr ABCIContext)
 foreign import ccall "register_abci_callback" register_callback
   :: Ptr ABCIContext
-  -> FunPtr (Int -> Int)
+  -> FunPtr (IO ())
   -> IO ()
 
 -- Implement External C Functions
@@ -71,7 +71,7 @@ foreign import ccall "register_abci_callback" register_callback
 getContext :: IO Context
 getContext = map Context get_context
 
-registerCallback :: (Int -> Int) -> Context -> IO ()
+registerCallback :: IO () -> Context -> IO ()
 registerCallback callback (Context abci) = do
   c_callback <- createCallback callback
   register_callback abci c_callback
@@ -176,7 +176,7 @@ main = do
   let updateChain5 = update (Just "Hello") updateChain4
   let latestChain  = update Nothing updateChain5
   ctx <- getContext
-  registerCallback (\n -> n * 4) ctx
+  registerCallback (putText "WTF!") ctx
   renderChain initialChain
   renderChain updateChain5
   renderChain latestChain
