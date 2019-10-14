@@ -29,7 +29,7 @@ impl abci::Application for Tensor {}
 // Define C Interface
 
 #[no_mangle]
-unsafe extern "C" fn get_context() -> *mut Context {
+unsafe extern "C" fn get_abci_context() -> *mut Context {
     return &mut CONTEXT as *mut Context;
 }
 

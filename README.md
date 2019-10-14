@@ -3,8 +3,8 @@ Tensor Chain
 
 This mini-project is a place to experiment with blockchain ideas. In
 particular, to play around with some of the more complex unanswered questions
-that many projects are currently trying to solve. In particular, two very interesting
-areas of blockchain research are:
+that many projects are currently trying to solve. Two very interesting areas of
+blockchain research are:
 
 * Synchrony in PBFT style chains. (Tendermint)
 * Efficient Leader Election in Fork Selection style chains. (Bitcoin)
@@ -16,14 +16,15 @@ Solving synchrony with PBFT style chains comes down to something known as [The
 impossibility result][1]. This is the discovery that it is impossible to solve
 the consensus problem in a fully distributed, fully asynchronous system. You
 only need _one_ participant to fail for the entire system to break down. This
-comes with a couple of caveats, it _is_ possible if:
+comes with a couple of caveats in that _it is possible_ if:
 
 1. You enforce synchrony. (Duh)
 2. You accept non-determinism in the consensus algorithm
 
 Most chains currently solve this by enforcing partial-synchrony (fake
 synchrony) by adding timeouts to the system. This comes with its own downsides.
-To truly solve the problem, the two above caveats are of interest:
+To truly solve the problem, the above two conditions are of interest. Breaking
+down two real solutions as of today:
 
 ### Enforcing Synchrony (1)
 Solana achieves this by using a repeated hash function to create a shared
@@ -42,7 +43,7 @@ can't write about it yet because I don't fully grasp it. Article of intrest foun
 
 ## Voting Style
 
-There are two styles of blockchain consensus at the moment.
+There are two styles of blockchain consensus at the moment in general:
 
 1. Voting and Round Consensus (Tendermint)
 2. Fork Selection Conensus (Bitcoin)
@@ -71,7 +72,7 @@ This Repository
 This repository is a place to play with these ideas, especially interesting is
 seeing how to combine them. Nirvana is a PoW style chain with 6 figure
 transactions per second characteristics, all while maintaining the security of
-a permissioned system and the security requirement of 51%
+a permissioned system with a byzantine failure requirement of 51%
 
 Probably impossible.
 

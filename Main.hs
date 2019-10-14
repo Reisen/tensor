@@ -7,11 +7,12 @@
 
 
 
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE RecordWildCards     #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE OverloadedStrings        #-}
+{-# LANGUAGE NoImplicitPrelude        #-}
+{-# LANGUAGE RecordWildCards          #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE TypeApplications         #-}
 
 module Main where
 
@@ -23,6 +24,8 @@ module Main where
 
 import           Protolude          hiding ( hash )
 import           Data.Typeable             ( typeOf )
+import           Foreign.C                 ()
+import           Foreign.Ptr               ( Ptr, nullPtr )
 
 import           Data.ByteArray            ( convert )
 import           Data.Base58String.Bitcoin ( toText, fromBytes )
@@ -30,6 +33,29 @@ import           Crypto.Hash               ( Digest, hash )
 import           Crypto.Hash.Algorithms    ( HashAlgorithm, SHA256 )
 
 import qualified Data.Text                as T
+
+
+
+--------------------------------------------------------------------------------
+
+-- Before we define anything, here we define our C interface with the ABCI shim.
+-- The ABCI shim provides us with access to Tendermint core. This eliminates the
+-- consensus pain for this project.
+--
+-- Might eventually want to replace this with fork-selection style consensus ala
+-- Bitcoin/Solana but for now this gets us bootstrapped.
+
+data ABCIContext
+
+newtype Context = Context
+  { abciContext :: Ptr ABCIContext
+  }
+
+foreign import ccall "get_abci_context" get_context :: IO (Ptr ABCIContext)
+
+-- Call into ABCI
+getContext :: IO Context
+getContext = map Context get_context
 
 
 
