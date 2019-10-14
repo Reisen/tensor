@@ -44,6 +44,7 @@ import qualified Data.Text                as T
 data HashChain hash = HashChain
   { currentHash  :: Digest hash
   , counter      :: Int
+  , resolution   :: Int
   }
 
 
@@ -58,12 +59,11 @@ data HashChain hash = HashChain
 update
   :: forall h.
      HashAlgorithm h  -- ^ Require a Cryptonite compatible hashing algorithm
-  => Int              -- ^ How many hashes to advance by.
-  -> Maybe ByteString -- ^ Data to mix into the chain.
+  => Maybe ByteString -- ^ Data to mix into the chain.
   -> HashChain h      -- ^ Target Chain
   -> HashChain h      -- ^ Updated Chain
 
-update n mayInput chain@HashChain{..} = case mayInput of
+update mayInput chain@HashChain{..} = case mayInput of
   -- When mixing an input into the chain, we advance by a single hash and hash
   -- the next hash with the input mixed into the bytes.
   Just input -> chain
@@ -79,11 +79,11 @@ update n mayInput chain@HashChain{..} = case mayInput of
   -- On the other hand when no data is being mixed in, we simply hash n times
   -- mod the increment resolution.
   Nothing    -> chain
-    { counter      = counter + (fromIntegral $ n - (counter `mod` n))
+    { counter      = counter + (fromIntegral $ resolution - (counter `mod` resolution))
     , currentHash  = currentHash
         & hash @ByteString @h
         . show
-        . applyN n (hash @ByteString @h . show)
+        . applyN resolution (hash @ByteString @h . show)
     }
 
 
@@ -110,6 +110,7 @@ renderChain HashChain{..} = putText $ fold
 sha256chain :: HashChain SHA256
 sha256chain = HashChain
   { currentHash  = hash ("0" :: ByteString)
+  , resolution   = 1024
   , counter      = 0
   }
 
@@ -121,14 +122,14 @@ sha256chain = HashChain
 
 main :: IO ()
 main = do
-  let initialChain = applyN 8 (update 1024 Nothing) sha256chain
-  let updateChain0 = update 1024 (Just "Hello") initialChain
-  let updateChain1 = update 1024 (Just "Hello") updateChain0
-  let updateChain2 = update 1024 (Just "Hello") updateChain1
-  let updateChain3 = update 1024 (Just "Hello") updateChain2
-  let updateChain4 = update 1024 (Just "Hello") updateChain3
-  let updateChain5 = update 1024 (Just "Hello") updateChain4
-  let latestChain  = update 1024 Nothing updateChain5
+  let initialChain = applyN 8 (update Nothing) sha256chain
+  let updateChain0 = update (Just "Hello") initialChain
+  let updateChain1 = update (Just "Hello") updateChain0
+  let updateChain2 = update (Just "Hello") updateChain1
+  let updateChain3 = update (Just "Hello") updateChain2
+  let updateChain4 = update (Just "Hello") updateChain3
+  let updateChain5 = update (Just "Hello") updateChain4
+  let latestChain  = update Nothing updateChain5
   renderChain initialChain
   renderChain updateChain5
   renderChain latestChain
