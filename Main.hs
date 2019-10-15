@@ -33,6 +33,8 @@ import           Crypto.Hash               ( Digest, hash )
 import           Crypto.Hash.Algorithms    ( HashAlgorithm, SHA256 )
 
 import qualified Data.Text                as T
+import qualified Criterion                as Criterion
+import qualified Criterion.Main           as Criterion
 
 
 
@@ -162,6 +164,18 @@ renderChain HashChain{..} = putText $ fold
   , " - " , show counter
   ]
 
+
+-- | Benchmark Chains
+
+benchmarkChain :: HashAlgorithm h => HashChain h -> IO ()
+benchmarkChain chain = Criterion.defaultMain
+  [ Criterion.bgroup "sha256chain"
+      [ Criterion.bench "Nothing: 1024"
+          $ Criterion.whnf (update Nothing) chain
+      , Criterion.bench "Nothing:    1"
+          $ Criterion.whnf (hash @ByteString @SHA256) ("foo" :: ByteString)
+      ]
+  ]
 
 
 --------------------------------------------------------------------------------

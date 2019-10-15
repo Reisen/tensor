@@ -27,6 +27,7 @@ executables:
     - base58string
     - bytestring
     - cryptonite
+    - criterion
     - memory
     - protolude
     - text

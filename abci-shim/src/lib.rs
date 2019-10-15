@@ -12,11 +12,21 @@
 //! Instead, this module will hook into tendermint's official rust-abci library,
 //! and provide a more stable interface that Haskell can call into using basic C
 //! FFI calls.
+
+
+
 // -----------------------------------------------------------------------------
+
+
+
+// These types match the callbacks passed in from Haskell land.
 
 type CheckTxCallback   = fn();
 type DeliverTxCallback = fn();
 type CommitCallback    = fn();
+
+// Our context carries pointers into Haskell land to handle the various ABCI
+// messages coming over the wire.
 
 struct Context {
     check_tx:   CheckTxCallback,
@@ -31,14 +41,19 @@ fn empty_callback() {
 /// are specifically designing the library to be linked against an ABCI
 /// implementation. As such this saves us managing the lifetimes of the context
 /// and eliminates allocation/de-allocation pains for the consumer.
+
 static mut CONTEXT: Context = Context {
     check_tx:   empty_callback,
     deliver_tx: empty_callback,
     commit:     empty_callback,
 };
 
+
+
 // -----------------------------------------------------------------------------
 // Define ABCI Application
+
+
 
 struct Tensor {
     context: &'static Context,
@@ -50,8 +65,10 @@ impl Tensor {
     }
 }
 
+// Implement ABCI handler. All of these functions simply call forward into Haskell
+// land where we'll implement all the block characteristics.
+
 impl abci::Application for Tensor {
-    // Implement CheckTX and do nothing.
     fn check_tx(&mut self, _req: &abci::RequestCheckTx) -> abci::ResponseCheckTx {
         println!("[tensor-shim] check_tx called");
         (self.context.check_tx)();
@@ -59,14 +76,12 @@ impl abci::Application for Tensor {
         response
     }
 
-    // Implement DeliveryTx and do nothing.
     fn deliver_tx(&mut self, _req: &abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
         println!("[tensor-shim] deliver_tx called");
         (self.context.deliver_tx)();
         abci::ResponseDeliverTx::new()
     }
 
-    // Implement commit and do nothing.
     fn commit(&mut self, _req: &abci::RequestCommit) -> abci::ResponseCommit {
         println!("[tensor-shim] commit called");
         (self.context.commit)();
@@ -75,8 +90,12 @@ impl abci::Application for Tensor {
     }
 }
 
+
+
 // -----------------------------------------------------------------------------
 // Define C Interface
+
+
 
 #[no_mangle]
 unsafe extern "C" fn get_abci_context() -> *mut Context {
