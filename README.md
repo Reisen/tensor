@@ -52,62 +52,58 @@ a metric ton of resources. They can be read in the order of listing:
   along with each paper that I recommend reading just as much as the papers
   themselves. As such all these links link to the MS Research pages:
 
-  - [The Implementation of Reliable Distributed Multiprocess Systems][source5]
+  - [The Implementation of Reliable Distributed Multiprocess Systems][source5]  
+    This was how Lamport originally started with the problem, in an attempt to
+    design an algorithm on a multiprocessor PC. It doesn't consider any kinds
+    of failures at all.
 
-  This was how Lamport originally started with the problem, in an attempt to
-  design an algorithm on a multiprocessor PC. It doesn't consider any kinds of
-  failures at all.
+  - [Reaching Agreement in the Presence of Faults][source6]  
+    This was the first tiem Lamport considered failures. In particular he was
+    still only considering a single PC with multiple processors, and how a
+    multi-core algorithm using message passing could handle failures. This was
+    the first time the figures `2n+1` and `3n+1` for handling failures are
+    presented.
 
-  - [Reaching Agreement in the Presence of Faults][source6]
+    This is the paper that won Lamport the Djikstra Award.
 
-  This was the first tiem Lamport considered failures. In particular he was
-  still only considering a single PC with multiple processors, and how a
-  multi-core algorithm using message passing could handle failures. This was
-  the first time the figures `2n+1` and `3n+1` for handling failures are
-  presented.
+  - [The Byzantine Generals Problem][source7]  
+    This is where Lamport finally extracted the concept of purely arbitrary, or
+    even attacker behaviour in a system. And how to approach it. It's the first
+    time the problem is presented in the context of intentional attack (hence
+    the reformulation of the problem with soldiers).
 
-  This is the paper that won Lamport the Djikstra Award.
+  - [Synchronizing Clocks in the Presence of Faults][source8]  
+    One of the conclusions from the previous paper is that an actual solution
+    to the byzantine problem requires synchronization. This paper covers how
+    multiple systems can synchronize clocks in a fault-tolerant way.
 
-  - [The Byzantine Generals Problem][source7]
+  - [Time, Clocks and the Ordering of Events in a Distributed System][source9]  
+    The previous paper gives us clock synchronization among our systems. This
+    leads to one of Lamports most amazing papers. It describes how, once you do
+    have a synchronized clock, it is possible to define distributed fault
+    tolerant state machines. This is literally the definition of pretty much
+    _any_ blockchain you can name. They are all distributed fault tolerant
+    state machines.
 
-  This is where Lamport finally extracted the concept of purely arbitrary, or
-  even attacker behaviour in a system. And how to approach it. It's the first
-  time the problem is presented in the context of intentional attack (hence the
-  reformulation of the problem with soldiers).
+    > The basic message of this paper should have been pretty obvious: the
+    > state machine approach, introduced in [27], allows us to turn any
+    > consensus algorithm into a general method for implementing distributed
+    > systems.
 
-  - [Synchronizing Clocks in the Presence of Faults][source8]
+    This paper won award after award, most influential paper, another Djikstra
+    prize, as well as the ACM SIGOPS Hall of Fame award. All the previous
+    papers lead up to this, probably the most important paper.
 
-  One of the conclusions from the previous paper is that an actual solution to
-  the byzantine problem requires synchronization. This paper covers how
-  multiple systems can synchronize clocks in a fault-tolerant way.
+  - [Using Time Instead of Timeout for Fault-Tolerant Distributed Systems][source10]  
+    This paper is incredible. The previous papers show how with synchronized
+    clocks we can build these powerful fault tolerant state machines. The
+    problem then is, how do we synchronize clocks among thousands of computers
+    of which we do not control? (Ala Bitcoin) This takes us back to the
+    statement above which is that Bitcoin is a solution to the distributed
+    clock problem.
 
-  - [Time, Clocks and the Ordering of Events in a Distributed System][source9]
-
-  The previous paper gives us clock synchronization among our systems. This
-  leads to one of Lamports most amazing papers. It describes how, once you do
-  have a synchronized clock, it is possible to define distributed fault
-  tolerant state machines. This is literally the definition of pretty much
-  _any_ blockchain you can name. They are all distributed fault tolerant state
-  machines.
-
-  > The basic message of this paper should have been pretty obvious: the state
-  > machine approach, introduced in [27], allows us to turn any consensus
-  > algorithm into a general method for implementing distributed systems.
-
-  This paper won award after award, most influential paper, another Djikstra
-  prize, as well as the ACM SIGOPS Hall of Fame award. All the previous papers
-  lead up to this, probably the most important paper.
-
-  - [Using Time Instead of Timeout for Fault-Tolerant Distributed Systems][source10]
-
-  This paper is incredible. The previous papers show how with synchronized
-  clocks we can build these powerful fault tolerant state machines. The problem
-  then is, how do we synchronize clocks among thousands of computers of which
-  we do not control? (Ala Bitcoin) This takes us back to the statement above
-  which is that Bitcoin is a solution to the distributed clock problem.
-
-  This paper is a literal description of Solana, with a magical synchronized
-  clock it becomes possible to eliminate timeouts from consensus algorithms.
+    This paper is a literal description of Solana, with a magical synchronized
+    clock it becomes possible to eliminate timeouts from consensus algorithms.
 
 - (Paper) [The Blockchain Consensus Layer and BFT][source11]
 
