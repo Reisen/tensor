@@ -1,0 +1,15 @@
+comment_width                = 80
+edition                      = "2018"
+empty_item_single_line       = false
+enum_discrim_align_threshold = 30
+max_width                    = 100
+normalize_comments           = true
+overflow_delimited_expr      = true
+reorder_impl_items           = true
+spaces_around_ranges         = true
+struct_field_align_threshold = 30
+wrap_comments                = true
+type_punctuation_density     = "Compressed"
+ignore                       = [
+    "/"
+]

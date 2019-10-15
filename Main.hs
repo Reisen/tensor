@@ -38,6 +38,8 @@ import qualified Data.Text                as T
 
 --------------------------------------------------------------------------------
 
+
+
 -- Before we define anything, here we define our C interface with the ABCI shim.
 -- The ABCI shim provides us with access to Tendermint core. This eliminates the
 -- consensus pain for this project.
@@ -53,7 +55,15 @@ newtype Context = Context
 
 -- We need to define some magical wrappers so that we can convert Haskell
 -- callbacks into C function prototypes.
-foreign import ccall "wrapper" createCallback
+foreign import ccall "wrapper" checkTxCallback
+  :: IO ()
+  -> IO (FunPtr (IO ()))
+
+foreign import ccall "wrapper" deliverTxCallback
+  :: IO ()
+  -> IO (FunPtr (IO ()))
+
+foreign import ccall "wrapper" commitCallback
   :: IO ()
   -> IO (FunPtr (IO ()))
 
@@ -62,19 +72,26 @@ foreign import ccall "get_abci_context" get_context :: IO (Ptr ABCIContext)
 foreign import ccall "register_abci_callback" register_callback
   :: Ptr ABCIContext
   -> FunPtr (IO ())
+  -> FunPtr (IO ())
+  -> FunPtr (IO ())
   -> IO ()
 
 -- Implement External C Functions
--- First we need to implement our magical function converters, and finally
--- implement the various actual C library functions we want to link to.
-
 getContext :: IO Context
 getContext = map Context get_context
 
-registerCallback :: IO () -> Context -> IO ()
-registerCallback callback (Context abci) = do
-  c_callback <- createCallback callback
-  register_callback abci c_callback
+registerCallbacks
+  :: Context -- ^ Tensor Context Pointer
+  -> IO ()   -- ^ CheckTxCallback
+  -> IO ()   -- ^ DeliverTxCallback
+  -> IO ()   -- ^ CommitCallback
+  -> IO ()   -- ^ Side Effectful
+
+registerCallbacks (Context abci) checkTx deliverTx commit = do
+  c_checkTx   <- checkTxCallback checkTx
+  c_deliverTx <- deliverTxCallback deliverTx
+  c_commit    <- commitCallback commit
+  register_callback abci c_checkTx c_deliverTx c_commit
 
 
 
@@ -87,9 +104,9 @@ registerCallback callback (Context abci) = do
 -- | transactions as dependencies.
 
 data HashChain hash = HashChain
-  { currentHash  :: Digest hash
-  , counter      :: Int
-  , resolution   :: Int
+  { counter     :: Int
+  , currentHash :: Digest hash
+  , resolution  :: Int
   }
 
 
@@ -112,8 +129,8 @@ update mayInput chain@HashChain{..} = case mayInput of
   -- When mixing an input into the chain, we advance by a single hash and hash
   -- the next hash with the input mixed into the bytes.
   Just input -> chain
-    { counter      = counter + 1
-    , currentHash  = currentHash
+    { counter     = counter + 1
+    , currentHash = currentHash
         & hash @ByteString @h
         . mappend input
         . show
@@ -130,7 +147,6 @@ update mayInput chain@HashChain{..} = case mayInput of
         . show
         . applyN resolution (hash @ByteString @h . show)
     }
-
 
 
 -- | This just renders the current state in terms of Hash & Counter.
@@ -154,9 +170,9 @@ renderChain HashChain{..} = putText $ fold
 
 sha256chain :: HashChain SHA256
 sha256chain = HashChain
-  { currentHash  = hash ("0" :: ByteString)
-  , resolution   = 1024
-  , counter      = 0
+  { currentHash = hash ("0" :: ByteString)
+  , resolution  = 1024
+  , counter     = 0
   }
 
 
@@ -176,7 +192,11 @@ main = do
   let updateChain5 = update (Just "Hello") updateChain4
   let latestChain  = update Nothing updateChain5
   ctx <- getContext
-  registerCallback (putText "WTF!") ctx
+  registerCallbacks ctx
+    (putText "[haskell] CheckTx")
+    (putText "[haskell] DeliverTx")
+    (putText "[haskell] Commit")
+
   renderChain initialChain
   renderChain updateChain5
   renderChain latestChain
