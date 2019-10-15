@@ -31,6 +31,7 @@ import           Data.ByteArray            ( convert )
 import           Data.Base58String.Bitcoin ( toText, fromBytes )
 import           Crypto.Hash               ( Digest, hash )
 import           Crypto.Hash.Algorithms    ( HashAlgorithm, SHA256 )
+import           Control.Concurrent.Async  ( waitAnyCancel )
 
 import qualified Data.Text                as T
 import qualified Criterion                as Criterion
@@ -194,6 +195,17 @@ sha256chain = HashChain
 --------------------------------------------------------------------------------
 
 
+abciWorker :: IO ()
+abciWorker = getContext >>= \ctx -> registerCallbacks ctx
+  (putText "[haskell] CheckTx")
+  (putText "[haskell] DeliverTx")
+  (putText "[haskell] Commit")
+
+
+transactionWorker :: IO ()
+transactionWorker = do
+  pure ()
+
 
 main :: IO ()
 main = do
@@ -205,12 +217,11 @@ main = do
   let updateChain4 = update (Just "Hello") updateChain3
   let updateChain5 = update (Just "Hello") updateChain4
   let latestChain  = update Nothing updateChain5
-  ctx <- getContext
-  registerCallbacks ctx
-    (putText "[haskell] CheckTx")
-    (putText "[haskell] DeliverTx")
-    (putText "[haskell] Commit")
-
   renderChain initialChain
   renderChain updateChain5
   renderChain latestChain
+
+  void . waitAnyCancel =<< traverse async
+    [ abciWorker
+    , transactionWorker
+    ]

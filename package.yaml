@@ -20,14 +20,15 @@ executables:
     extra-libraries:     abci_shim
     source-dirs:         .
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - base58string
-    - bytestring
-    - cryptonite
-    - criterion
-    - memory
-    - protolude
-    - text
+      - async
+      - base58string
+      - bytestring
+      - cryptonite
+      - criterion
+      - memory
+      - protolude
+      - text
