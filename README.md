@@ -8,7 +8,7 @@ a metric ton of resources. They can be read in the order of listing:
 
 ### On Consensus Itself
 
-- (Blog) [How Does Distributed Consensus Work?][source1]
+- (Blog) [How Does Distributed Consensus Work?][source1]  
   _An overview of key breakthroughs in blockchain technology — and why Nakamoto
   Consensus is such a big deal._
 
@@ -139,14 +139,17 @@ a metric ton of resources. They can be read in the order of listing:
 [3PC]: https://en.wikipedia.org/wiki/Three-phase_commit_protocol
 
 
-Two very interesting areas of
-blockchain research are:
+This Repository
+--------------------------------------------------------------------------------
+
+Two very interesting areas of blockchain research that I want to tackle in this
+repository are:
 
 * Synchrony in PBFT style chains. (Tendermint)
 * Efficient Leader Election in Fork Selection style chains. (Bitcoin)
 
 
-## Synchrony
+### Synchrony
 
 Solving synchrony with PBFT style chains comes down to something known as [The
 impossibility result][1]. This is the discovery that it is impossible to solve
@@ -162,7 +165,7 @@ synchrony) by adding timeouts to the system. This comes with its own downsides.
 To truly solve the problem, the above two conditions are of interest. Breaking
 down two real solutions as of today:
 
-### Enforcing Synchrony (1)
+#### Enforcing Synchrony (1)
 Solana achieves this by using a repeated hash function to create a shared
 stream of hashes that everyone agrees on. A hash at some point in the chain is
 then treated as a timestamp. The benefit from doing this is that the hash
@@ -171,13 +174,13 @@ stream can be treated as a shared clock. Any two parties can agree that at hash
 same way that a timestamp with a real clock does relative to other timestamps.
 This is known as [Proof of History][2]
 
-### Allowing Non-Determinism (2)
+#### Allowing Non-Determinism (2)
 The other solution is to allow non-determinism, this is what HashGraph does. I
 can't write about it yet because I don't fully grasp it. Article of intrest found
 [here][3].
 
 
-## Voting Style
+### Voting Style
 
 There are two styles of blockchain consensus at the moment in general:
 
@@ -202,7 +205,8 @@ By reducing the problem to these statements, we can consider alternative
 systems to PoW hashing that have the same properties. Of particular interest
 are VDF/VRF combinations which are currently being considered for Ethereum 2.0.
 
-This Repository
+
+The Goal
 --------------------------------------------------------------------------------
 
 This repository is a place to play with these ideas, especially interesting is
