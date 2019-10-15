@@ -27,8 +27,9 @@ executables:
       - async
       - base58string
       - bytestring
-      - cryptonite
       - criterion
+      - cryptonite
+      - lens
       - memory
       - protolude
       - text

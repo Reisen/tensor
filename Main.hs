@@ -13,6 +13,7 @@
 {-# LANGUAGE RecordWildCards          #-}
 {-# LANGUAGE ScopedTypeVariables      #-}
 {-# LANGUAGE TypeApplications         #-}
+{-# LANGUAGE TemplateHaskell          #-}
 
 module Main where
 
@@ -22,20 +23,21 @@ module Main where
 -- o Imports from external packages.
 -- o Qualified Imports
 
-import           Protolude          hiding ( hash )
-import           Data.Typeable             ( typeOf )
-import           Foreign.C                 ()
-import           Foreign.Ptr               ( FunPtr, Ptr, nullPtr )
+import           Protolude               hiding ( hash )
+import           Data.Typeable                  ( typeOf )
+import           Foreign.Ptr                    ( FunPtr, Ptr, nullPtr )
 
-import           Data.ByteArray            ( convert )
-import           Data.Base58String.Bitcoin ( toText, fromBytes )
-import           Crypto.Hash               ( Digest, hash )
-import           Crypto.Hash.Algorithms    ( HashAlgorithm, SHA256 )
-import           Control.Concurrent.Async  ( waitAnyCancel )
+import           Control.Lens                   ( makeLenses )
+import           Control.Lens.Operators
+import           Data.ByteArray                 ( convert )
+import           Data.Base58String.Bitcoin      ( toText, fromBytes )
+import           Crypto.Hash                    ( Digest, hash )
+import           Crypto.Hash.Algorithms         ( HashAlgorithm, SHA256 )
+import           Control.Concurrent.Async       ( waitAnyCancel )
 
-import qualified Data.Text                as T
-import qualified Criterion                as Criterion
-import qualified Criterion.Main           as Criterion
+import qualified Data.Text                     as T
+import qualified Criterion                     as Criterion
+import qualified Criterion.Main                as Criterion
 
 
 
@@ -107,10 +109,12 @@ registerCallbacks (Context abci) checkTx deliverTx commit = do
 -- | transactions as dependencies.
 
 data HashChain hash = HashChain
-  { counter     :: Int
-  , currentHash :: Digest hash
-  , resolution  :: Int
+  { _counter     :: Int
+  , _currentHash :: Digest hash
+  , _resolution  :: Int
   }
+
+makeLenses ''HashChain
 
 
 -- | Update the HashChain with data to mix into it. Data could eithre be other
@@ -132,24 +136,19 @@ update mayInput chain@HashChain{..} = case mayInput of
   -- When mixing an input into the chain, we advance by a single hash and hash
   -- the next hash with the input mixed into the bytes.
   Just input -> chain
-    { counter     = counter + 1
-    , currentHash = currentHash
-        & hash @ByteString @h
+    & counter     +~ 1
+    & currentHash %~
+          hash @ByteString @h
         . mappend input
         . show
         . hash @ByteString @h
         . show
-    }
 
   -- On the other hand when no data is being mixed in, we simply hash n times
-  -- mod the increment resolution.
+  -- mod the increment _resolution.
   Nothing    -> chain
-    { counter      = counter + (fromIntegral $ resolution - (counter `mod` resolution))
-    , currentHash  = currentHash
-        & hash @ByteString @h
-        . show
-        . applyN resolution (hash @ByteString @h . show)
-    }
+    & counter     +~ _resolution - (_counter `mod` _resolution)
+    & currentHash %~ applyN _resolution (hash @ByteString @h . show)
 
 
 -- | This just renders the current state in terms of Hash & Counter.
@@ -161,8 +160,8 @@ renderChain
 
 renderChain HashChain{..} = putText $ fold
   [ show . typeRep $ Proxy @h
-  , " : " , T.take 9 . toText . fromBytes . convert $ currentHash
-  , " - " , show counter
+  , " : " , T.take 9 . toText . fromBytes . convert $ _currentHash
+  , " - " , show _counter
   ]
 
 
@@ -185,9 +184,9 @@ benchmarkChain chain = Criterion.defaultMain
 
 sha256chain :: HashChain SHA256
 sha256chain = HashChain
-  { currentHash = hash ("0" :: ByteString)
-  , resolution  = 1024
-  , counter     = 0
+  { _currentHash = hash ("0" :: ByteString)
+  , _resolution  = 1024
+  , _counter     = 0
   }
 
 
