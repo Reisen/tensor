@@ -58,19 +58,19 @@ a metric ton of resources. They can be read in the order of listing:
     of failures at all.
 
   - [Reaching Agreement in the Presence of Faults][source6]  
-    This was the first tiem Lamport considered failures. In particular he was
+    This was the first time Lamport considered failures. In particular he was
     still only considering a single PC with multiple processors, and how a
     multi-core algorithm using message passing could handle failures. This was
     the first time the figures `2n+1` and `3n+1` for handling failures are
     presented.
 
-    This is the paper that won Lamport the Djikstra Award.
+    This paper won Lamport the Djikstra Award.
 
   - [The Byzantine Generals Problem][source7]  
-    This is where Lamport finally extracted the concept of purely arbitrary, or
-    even attacker behaviour in a system. And how to approach it. It's the first
-    time the problem is presented in the context of intentional attack (hence
-    the reformulation of the problem with soldiers).
+    This is where Lamport finally extracted the concept of _completely_
+    arbitrary failure in a distributed system. It's the first time the problem
+    is presented in the context of intentional attack (hence the reformulation
+    of the problem with soldiers).
 
   - [Synchronizing Clocks in the Presence of Faults][source8]  
     One of the conclusions from the previous paper is that an actual solution
