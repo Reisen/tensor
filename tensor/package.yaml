@@ -11,16 +11,30 @@ extra-source-files:  []
 dependencies:
   - base
 
+default-extensions:
+  - BlockArguments
+  - ForeignFunctionInterface
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - RecordWildCards
+  - ScopedTypeVariables
+  - TemplateHaskell
+  - TypeApplications
+
+
 executables:
   tensor:
     main:                Main.hs
     extra-lib-dirs:      ../abci-shim/target/debug
     extra-libraries:     abci_shim
     source-dirs:         .
+
     ghc-options:
+      - -Werror
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
+
     dependencies:
       - async
       - base58string
