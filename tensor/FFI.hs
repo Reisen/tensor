@@ -11,6 +11,7 @@ module FFI
   ( Context
   , getContext
   , registerCallbacks
+  , executeWASM
   ) where
 
 -- Imports Grouped By:
@@ -25,7 +26,7 @@ import           Foreign.Ptr                    ( FunPtr, Ptr, nullPtr )
 import           Foreign.C.Types                ( CChar )
 import           Foreign.C.String               ( CString )
 
-import           Data.ByteString                ( packCStringLen )
+import           Data.ByteString                ( useAsCStringLen, packCStringLen )
 
 import           Types                          ( Tensor, initialTensor )
 
@@ -70,7 +71,7 @@ foreign import ccall "wrapper" commitCallback    :: Wrapper CommitCallback
 -- Define FFI calls for all the functions we want to import from C/Rust land
 -- and call from Haskell land.
 
-foreign import ccall "execute_wasm" execute_wasm :: CString -> IO ()
+foreign import ccall "execute_wasm" execute_wasm :: CString -> Int -> IO ()
 foreign import ccall "get_abci_context" get_context :: IO (Ptr ABCIContext)
 foreign import ccall "register_abci_callback" register_callback
   :: Ptr ABCIContext
@@ -118,3 +119,7 @@ registerCallbacks (Context_ abci) checkTx deliverTx commit = do
     rust_checkTx
     rust_deliverTx
     rust_commit
+
+
+executeWASM :: ByteString -> IO ()
+executeWASM = flip useAsCStringLen (uncurry execute_wasm)

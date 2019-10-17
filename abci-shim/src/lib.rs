@@ -129,18 +129,8 @@ extern "C" fn register_abci_callback(
     abci::run(address, tensor);
 }
 
-static WASM: &'static [u8] = &[
-    // The module above compiled to bytecode goes here.
-    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x06, 0x01, 0x60,
-    0x01, 0x7f, 0x01, 0x7f, 0x03, 0x02, 0x01, 0x00, 0x07, 0x0b, 0x01, 0x07,
-    0x61, 0x64, 0x64, 0x5f, 0x6f, 0x6e, 0x65, 0x00, 0x00, 0x0a, 0x09, 0x01,
-    0x07, 0x00, 0x20, 0x00, 0x41, 0x01, 0x6a, 0x0b, 0x00, 0x1a, 0x04, 0x6e,
-    0x61, 0x6d, 0x65, 0x01, 0x0a, 0x01, 0x00, 0x07, 0x61, 0x64, 0x64, 0x5f,
-    0x6f, 0x6e, 0x65, 0x02, 0x07, 0x01, 0x00, 0x01, 0x00, 0x02, 0x70, 0x30,
-];
-
 #[no_mangle]
-extern "C" fn execute_wasm(script: &[u8]) {
+extern "C" fn execute_wasm(script: *const u8, len: usize) {
     use wasmer_runtime::{
         error,
         imports,
@@ -148,22 +138,31 @@ extern "C" fn execute_wasm(script: &[u8]) {
         Value,
     };
 
-    fn wasm_runner(script: &[u8]) -> error::Result<()> {
+    let wasm = unsafe {
+        std::slice::from_raw_parts(
+            script,
+            len,
+        )
+    };
+
+    fn wasm_runner(script: &[u8]) -> error::Result<bool> {
         // We're not importing anything, so make an empty import object.
         let import_object = imports! {};
         let instance      = instantiate(script, &import_object)?;
-        let values        = instance.dyn_func("add_one")?.call(&[Value::I32(42)])?;
+        let values        = instance.dyn_func("add_one")?.call(&[Value::I32(100)])?;
 
-        assert_eq!(
-            values[0],
-            Value::I32(43)
-        );
-
-        Ok(())
+        if values[0] == Value::I32(101) {
+            println!("[wasm] Ran N + 1: 100 + 1 = {:?}", values[0]);
+            Ok(true)
+        } else {
+            println!("[wasm] Ran N + 1: 100 + 1 = {:?}", values[0]);
+            Ok(false)
+        }
     }
 
-    match wasm_runner(script) {
-        Err(e) => println!("WASM Execution Failed:  {:?}", e),
-        Ok(()) => println!("WASM Execution Success!"),
+    match wasm_runner(wasm) {
+        Err(e)    => println!("[wasm] WASM Execution Failed:  {:?}", e),
+        Ok(true)  => println!("[wasm] WASM Execution Success!"),
+        Ok(false) => println!("[wasm] WASM Execution Logic Failed!"),
     }
 }

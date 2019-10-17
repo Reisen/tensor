@@ -14,7 +14,7 @@ module ABCI
 
 import           Protolude
 
-import           FFI                            ( Context, getContext, registerCallbacks )
+import           FFI                            ( Context, getContext, registerCallbacks, executeWASM )
 import           Types                          ( Tensor(..) )
 
 
@@ -50,6 +50,7 @@ abciCheckTx transaction tensor@Tensor{..} = do
 abciCommit :: Tensor -> IO Tensor
 abciCommit tensor@Tensor{..} = do
   putText "Handling Tensor Commit"
+  executeWASM "\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7f\x01\x7f\x03\x02\x01\x00\x07\x0b\x01\x07\x61\x64\x64\x5f\x6f\x6e\x65\x00\x00\x0a\x09\x01\x07\x00\x20\x00\x41\x01\x6a\x0b\x00\x1a\x04\x6e\x61\x6d\x65\x01\x0a\x01\x00\x07\x61\x64\x64\x5f\x6f\x6e\x65\x02\x07\x01\x00\x01\x00\x02\x70\x30"
   pure tensor
     { txCounter = txCounter + 1
     }
