@@ -1,14 +1,12 @@
 name:                tensor
 version:             0.1.0.0
-github:              "ChorusOne/tensor"
+github:              "Reisen/tensor"
 license:             BSD3
 author:              "Reisen"
 maintainer:          "reisen@morphism.org"
 copyright:           "2019 Reisen"
-description:         Please see the README on GitHub at <https://github.com/githubuser/foo#readme>
-
-extra-source-files:
-  - README.md
+description:         Please see the README on GitHub at <https://github.com/Reisen/tensor#readme>
+extra-source-files:  []
 
 dependencies:
   - base
@@ -16,7 +14,7 @@ dependencies:
 executables:
   tensor:
     main:                Main.hs
-    extra-lib-dirs:      ./abci-shim/target/debug
+    extra-lib-dirs:      ../abci-shim/target/debug
     extra-libraries:     abci_shim
     source-dirs:         .
     ghc-options:
