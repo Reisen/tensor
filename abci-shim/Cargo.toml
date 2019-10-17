@@ -8,4 +8,5 @@ edition    = "2018"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-abci = "0.6.2"
+abci           = "0.6.2"
+wasmer-runtime = "0.8.0"

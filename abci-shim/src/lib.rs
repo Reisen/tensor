@@ -21,8 +21,8 @@
 
 // These types match the callbacks passed in from Haskell land.
 
-type CheckTxCallback   = fn();
-type DeliverTxCallback = fn();
+type CheckTxCallback   = fn(*const u8, usize);
+type DeliverTxCallback = fn(*const u8, usize);
 type CommitCallback    = fn();
 
 // Our context carries pointers into Haskell land to handle the various ABCI
@@ -34,18 +34,15 @@ struct Context {
     commit:     CommitCallback,
 }
 
-fn empty_callback() {
-}
-
 /// Define a Global Context in the library. This is quite an anti-pattern but we
 /// are specifically designing the library to be linked against an ABCI
 /// implementation. As such this saves us managing the lifetimes of the context
 /// and eliminates allocation/de-allocation pains for the consumer.
 
 static mut CONTEXT: Context = Context {
-    check_tx:   empty_callback,
-    deliver_tx: empty_callback,
-    commit:     empty_callback,
+    check_tx:   |_, _| {},
+    deliver_tx: |_, _| {},
+    commit:     || {},
 };
 
 
@@ -71,22 +68,29 @@ impl Tensor {
 impl abci::Application for Tensor {
     fn check_tx(&mut self, _req: &abci::RequestCheckTx) -> abci::ResponseCheckTx {
         println!("[tensor-shim] check_tx called");
-        (self.context.check_tx)();
-        let response = abci::ResponseCheckTx::new();
-        response
+
+        let request_bytes = _req.get_tx();
+        let raw_bytes     = request_bytes.as_ptr();
+        let raw_length    = request_bytes.len();
+        (self.context.check_tx)(raw_bytes, raw_length);
+        abci::ResponseCheckTx::new()
     }
 
     fn deliver_tx(&mut self, _req: &abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
         println!("[tensor-shim] deliver_tx called");
-        (self.context.deliver_tx)();
+
+        let request_bytes = _req.get_tx();
+        let raw_bytes     = request_bytes.as_ptr();
+        let raw_length    = request_bytes.len();
+        (self.context.deliver_tx)(raw_bytes, raw_length);
         abci::ResponseDeliverTx::new()
     }
 
     fn commit(&mut self, _req: &abci::RequestCommit) -> abci::ResponseCommit {
         println!("[tensor-shim] commit called");
+
         (self.context.commit)();
-        let response = abci::ResponseCommit::new();
-        response
+        abci::ResponseCommit::new()
     }
 }
 
@@ -99,6 +103,7 @@ impl abci::Application for Tensor {
 
 #[no_mangle]
 unsafe extern "C" fn get_abci_context() -> *mut Context {
+    println!("[tensor-shim] Getting Context");
     return &mut CONTEXT as *mut Context;
 }
 
@@ -122,4 +127,43 @@ extern "C" fn register_abci_callback(
 
     println!("[tensor-shim] Start Tendermint...");
     abci::run(address, tensor);
+}
+
+static WASM: &'static [u8] = &[
+    // The module above compiled to bytecode goes here.
+    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x06, 0x01, 0x60,
+    0x01, 0x7f, 0x01, 0x7f, 0x03, 0x02, 0x01, 0x00, 0x07, 0x0b, 0x01, 0x07,
+    0x61, 0x64, 0x64, 0x5f, 0x6f, 0x6e, 0x65, 0x00, 0x00, 0x0a, 0x09, 0x01,
+    0x07, 0x00, 0x20, 0x00, 0x41, 0x01, 0x6a, 0x0b, 0x00, 0x1a, 0x04, 0x6e,
+    0x61, 0x6d, 0x65, 0x01, 0x0a, 0x01, 0x00, 0x07, 0x61, 0x64, 0x64, 0x5f,
+    0x6f, 0x6e, 0x65, 0x02, 0x07, 0x01, 0x00, 0x01, 0x00, 0x02, 0x70, 0x30,
+];
+
+#[no_mangle]
+extern "C" fn execute_wasm(script: &[u8]) {
+    use wasmer_runtime::{
+        error,
+        imports,
+        instantiate,
+        Value,
+    };
+
+    fn wasm_runner(script: &[u8]) -> error::Result<()> {
+        // We're not importing anything, so make an empty import object.
+        let import_object = imports! {};
+        let instance      = instantiate(script, &import_object)?;
+        let values        = instance.dyn_func("add_one")?.call(&[Value::I32(42)])?;
+
+        assert_eq!(
+            values[0],
+            Value::I32(43)
+        );
+
+        Ok(())
+    }
+
+    match wasm_runner(script) {
+        Err(e) => println!("WASM Execution Failed:  {:?}", e),
+        Ok(()) => println!("WASM Execution Success!"),
+    }
 }

@@ -7,13 +7,14 @@
 
 
 
+{-# LANGUAGE BlockArguments           #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE OverloadedStrings        #-}
 {-# LANGUAGE NoImplicitPrelude        #-}
+{-# LANGUAGE OverloadedStrings        #-}
 {-# LANGUAGE RecordWildCards          #-}
 {-# LANGUAGE ScopedTypeVariables      #-}
-{-# LANGUAGE TypeApplications         #-}
 {-# LANGUAGE TemplateHaskell          #-}
+{-# LANGUAGE TypeApplications         #-}
 
 module Main where
 
@@ -26,10 +27,13 @@ module Main where
 import           Protolude               hiding ( hash )
 import           Data.Typeable                  ( typeOf )
 import           Foreign.Ptr                    ( FunPtr, Ptr, nullPtr )
+import           Foreign.C.Types                ( CChar )
+import           Foreign.C.String               ( CString )
 
 import           Control.Lens                   ( makeLenses )
 import           Control.Lens.Operators
 import           Data.ByteArray                 ( convert )
+import           Data.ByteString                ( packCStringLen )
 import           Data.Base58String.Bitcoin      ( toText, fromBytes )
 import           Crypto.Hash                    ( Digest, hash )
 import           Crypto.Hash.Algorithms         ( HashAlgorithm, SHA256 )
@@ -60,24 +64,28 @@ newtype Context = Context
 
 -- We need to define some magical wrappers so that we can convert Haskell
 -- callbacks into C function prototypes.
+type CheckTxCallback = Ptr CChar -> Int -> IO ()
 foreign import ccall "wrapper" checkTxCallback
-  :: IO ()
-  -> IO (FunPtr (IO ()))
+  :: CheckTxCallback
+  -> IO (FunPtr CheckTxCallback)
 
+type DeliverTxCallback = Ptr CChar -> Int -> IO ()
 foreign import ccall "wrapper" deliverTxCallback
-  :: IO ()
-  -> IO (FunPtr (IO ()))
+  :: DeliverTxCallback
+  -> IO (FunPtr DeliverTxCallback)
 
+type CommitCallback = IO ()
 foreign import ccall "wrapper" commitCallback
   :: IO ()
-  -> IO (FunPtr (IO ()))
+  -> IO (FunPtr CommitCallback)
 
 -- Define Foreign Function Signatures
+foreign import ccall "execute_wasm" execute_wasm :: CString -> IO ()
 foreign import ccall "get_abci_context" get_context :: IO (Ptr ABCIContext)
 foreign import ccall "register_abci_callback" register_callback
   :: Ptr ABCIContext
-  -> FunPtr (IO ())
-  -> FunPtr (IO ())
+  -> FunPtr (Ptr CChar -> Int -> IO ())
+  -> FunPtr (Ptr CChar -> Int -> IO ())
   -> FunPtr (IO ())
   -> IO ()
 
@@ -86,21 +94,42 @@ getContext :: IO Context
 getContext = map Context get_context
 
 registerCallbacks
-  :: Context -- ^ Tensor Context Pointer
-  -> IO ()   -- ^ CheckTxCallback
-  -> IO ()   -- ^ DeliverTxCallback
-  -> IO ()   -- ^ CommitCallback
-  -> IO ()   -- ^ Side Effectful
+  :: Context                             -- ^ Tensor Context Pointer
+  -> (ByteString -> Tensor -> IO Tensor) -- ^ CheckTxCallback
+  -> (ByteString -> Tensor -> IO Tensor) -- ^ DeliverTxCallback
+  -> (Tensor -> IO Tensor)               -- ^ CommitCallback
+  -> IO ()                               -- ^ Side Effectful
 
 registerCallbacks (Context abci) checkTx deliverTx commit = do
-  c_checkTx   <- checkTxCallback checkTx
-  c_deliverTx <- deliverTxCallback deliverTx
-  c_commit    <- commitCallback commit
-  register_callback abci c_checkTx c_deliverTx c_commit
+  putText "[haskell] Registering..."
+
+  tensor         <- newMVar initialTensor
+  let serializer cb b l = packCStringLen (b, l) >>= modifyMVar_ tensor . cb
+
+  -- Create Callbacks
+  rust_checkTx   <- checkTxCallback (serializer checkTx)
+  rust_commit    <- commitCallback $ modifyMVar_ tensor commit
+  rust_deliverTx <- deliverTxCallback (serializer deliverTx)
+
+  -- Register Tensor Callback
+  putText "[haskell] Done"
+  register_callback abci rust_checkTx rust_deliverTx rust_commit
 
 
 
 --------------------------------------------------------------------------------
+
+
+-- | Application State
+
+data Tensor = Tensor
+  { txCounter :: Int
+  } deriving (Eq, Show)
+
+initialTensor :: Tensor
+initialTensor = Tensor
+  { txCounter = 0
+  }
 
 
 
@@ -194,11 +223,45 @@ sha256chain = HashChain
 --------------------------------------------------------------------------------
 
 
+abciDeliverTx
+  :: ByteString
+  -> Tensor
+  -> IO Tensor
+
+abciDeliverTx transaction tensor@Tensor{..} = do
+  putText "Handling Tensor DeliverTx"
+  pure tensor
+    { txCounter = txCounter + 1
+    }
+
+
+abciCheckTx
+  :: ByteString
+  -> Tensor
+  -> IO Tensor
+
+abciCheckTx transaction tensor@Tensor{..} = do
+  putText "Handling Tensor DeliverTx"
+  pure tensor
+    { txCounter = txCounter + 1
+    }
+
+
+abciCommit :: Tensor -> IO Tensor
+abciCommit tensor@Tensor{..} = do
+  putText "Handling Tensor Commit"
+  pure tensor
+    { txCounter = txCounter + 1
+    }
+
+
 abciWorker :: IO ()
-abciWorker = getContext >>= \ctx -> registerCallbacks ctx
-  (putText "[haskell] CheckTx")
-  (putText "[haskell] DeliverTx")
-  (putText "[haskell] Commit")
+abciWorker = do
+  ctx <- getContext
+  registerCallbacks ctx
+    abciCheckTx
+    abciDeliverTx
+    abciCommit
 
 
 transactionWorker :: IO ()
@@ -219,8 +282,4 @@ main = do
   renderChain initialChain
   renderChain updateChain5
   renderChain latestChain
-
-  void . waitAnyCancel =<< traverse async
-    [ abciWorker
-    , transactionWorker
-    ]
+  abciWorker
