@@ -70,8 +70,9 @@ impl abci::Application for Tensor {
         println!("[tensor-shim] check_tx called");
 
         let request_bytes = _req.get_tx();
-        let raw_bytes     = request_bytes.as_ptr();
-        let raw_length    = request_bytes.len();
+        let decoded       = bs58::decode(&request_bytes).into_vec().unwrap();
+        let raw_bytes     = decoded.as_ptr();
+        let raw_length    = decoded.len();
         (self.context.check_tx)(raw_bytes, raw_length);
         abci::ResponseCheckTx::new()
     }
@@ -80,8 +81,9 @@ impl abci::Application for Tensor {
         println!("[tensor-shim] deliver_tx called");
 
         let request_bytes = _req.get_tx();
-        let raw_bytes     = request_bytes.as_ptr();
-        let raw_length    = request_bytes.len();
+        let decoded       = bs58::decode(&request_bytes).into_vec().unwrap();
+        let raw_bytes     = decoded.as_ptr();
+        let raw_length    = decoded.len();
         (self.context.deliver_tx)(raw_bytes, raw_length);
         abci::ResponseDeliverTx::new()
     }

@@ -13,6 +13,7 @@ dependencies:
 
 default-extensions:
   - BlockArguments
+  - DeriveGeneric
   - ForeignFunctionInterface
   - NoImplicitPrelude
   - OverloadedStrings
@@ -36,6 +37,7 @@ executables:
       - -with-rtsopts=-N
 
     dependencies:
+      - aeson
       - async
       - base58string
       - bytestring

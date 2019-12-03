@@ -19,11 +19,7 @@ import           Types                          ( Tensor(..)
                                                 , sha256chain
                                                 )
 
-
-
 --------------------------------------------------------------------------------
-
-
 
 transactionWorker :: IO ()
 transactionWorker = do
@@ -40,6 +36,7 @@ main = do
   let updateChain4 = update (Just "Hello") updateChain3
   let updateChain5 = update (Just "Hello") updateChain4
   let latestChain  = update Nothing updateChain5
+
   renderChain initialChain
   renderChain updateChain5
   renderChain latestChain

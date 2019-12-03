@@ -9,4 +9,5 @@ crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 abci           = "0.6.2"
+bs58           = "0.3.0"
 wasmer-runtime = "0.8.0"
